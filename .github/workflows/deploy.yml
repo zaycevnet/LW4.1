@@ -1,48 +1,48 @@
 name: Deploy to GitHub Pages on Release
 
 on:
-  release:
-    types: [published]
+  release:  # Процесс будет запускаться, когда создается новый релиз в GitHub
+    types: [published]  # когда релиз становится публичным
 
 permissions:
-  contents: write
+  contents: write  # разрешение позволяет GitHub Actions записывать в репозиторий, что необходимо для деплоя на GitHub Pages
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code  # клонирование репозитория
         uses: actions/checkout@v4
 
-      - name: Checkout gh-pages
+      - name: Checkout gh-pages  # клонирование ветки
         uses: actions/checkout@v4
         with:
-          ref: gh-pages
-          path: gh-pages-content
+          ref: gh-pages  # Клонируется не основная ветка main, а ветка gh-pages, куда будут деплоиться файлы
+          path: gh-pages-content  # содержимое ветки gh-pages будет загружено в папку gh-pages-content в текущем рабочем каталоге
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Get release version
+      - name: Get release version  # извлекает версию релиза из тега, который был использован для создания релиза
         id: get_version
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Prepare deployment
+      - name: Prepare deployment  # подготавливает все файлы для деплоя
         run: |
-          mkdir -p build
-          if [ -d "gh-pages-content" ]; then
+          mkdir -p build  # Создает папку build, куда будут помещены все файлы для деплоя
+          if [ -d "gh-pages-content" ]; then  # Если папка gh-pages-content существует (то есть мы клонировали содержимое ветки gh-pages), копируем все файлы из этой папки в build/
             cp -r gh-pages-content/* build/ || true
           fi
-          mkdir -p build/v${{ steps.get_version.outputs.version }}
-          cp -r ./ru ./en ./index.html ./build/v${{ steps.get_version.outputs.version }}/
-          cp -r ./ru ./en ./index.html ./build/
+          mkdir -p build/v${{ steps.get_version.outputs.version }}  # Создаем папку для текущей версии релиза
+          cp -r ./ru ./en ./index.html ./build/v${{ steps.get_version.outputs.version }}/  # Копируем файлы для релиза в соответствующую папку версии
+          cp -r ./ru ./en ./index.html ./build/  # Также копируем эти файлы в папку build/ для основной публикации.
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build
-          force_orphan: false
+          publish_dir: ./build  # Указывает папку, содержащую файлы для деплоя
+          force_orphan: false  # Указывает, что не нужно форсировать создание "одиночной" ветки, это полезно, если мы хотим использовать ветку gh-pages для деплоя
